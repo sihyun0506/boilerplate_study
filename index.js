@@ -40,6 +40,25 @@ app.listen(port, () => {
 //--------------------유저 모델 설정 종료--------------------//
 
 //--------------------깃 시작--------------------//
-// 깃 : 분산 버전 관리 시스템
+// # 5, 6
+// 깃 : 분산 버전 관리 시스템(툴)
 // 여러명이 한 사이트를 위한 코드를 작성
 // -> 코드를 관리하기 위함
+// 깃헙 : 깃을 위한 클라우드 서비스
+// 로컬과 리모트가 안전하게 통신하기 위해 SSH(secure shell)가 필요
+// 1. 루트 디렉토리에서 깃 저장소 생성( git init )
+// (git status 입력시 Untracked files를 보여줌)
+// <working dir> (처음 상태)
+//  -> git add (working dir 의 파일들을 staging area로 이동시킴,
+//              but 여기서 node_modules은 저장소에 올리지 않음 
+//              왜냐하면 node_modules는 라이브러리인데 
+//              이건 package.json에 들어있어서 npm intall로 다운로드가 가능하기 때문
+//              그래서 git add 를 하기전에 gitignore을 만들고 node_modules을 제외하고 git add를 함
+//              이미 올린거는 git rm --cached node_modules -r을 이용해서 제거)
+// <staging area> (git rep에 넣기 전에 잠시 저장해놓는 곳)
+//  -> git commit (git commit -m "커밋메시지" 로 커밋
+//                 커밋이 올라갔기 때문에 staging area 는 비워짐)
+// <git rep(local)>
+//  (-> git remote add origin 레포지토리주소 <= 원격과 로컬연결)
+//  -> git push origin master
+// <git rep(remote)>
