@@ -2,10 +2,11 @@ const express = require('express'); //express 모듈을 가져옴
 const app = express(); //가져온 express 모듈을 이용해서 새로운 express 객체를 만들고
 const port = 5000;
 const config = require('./config/key');
-
+const cookieParser = require('cookie-parser');
 //const bodyParser = require('body-parser'); //body-parser 가져옴
 const { User } = require('./models/User'); //User.js로부터 가져옴
 
+app.use(cookieParser());
 //express 4.16버전 이상에서는 내부에 bodyParser가 포함되므로 
 // app.use(bodyParser.urlencoded({extended: true}));
 // app.use(bodyParser.json());
@@ -99,10 +100,45 @@ app.post('/register', (req, res) => {
             return res.json({success: false, err});
         return res.status(200).json({   //status(200)은 성공했다는 거
             success: true
-        })
-    })
+        });
+    });
     //save()는 mongoDb에서 오는 메서드
     //req.body를 통해 온 정보들이 user모델에 저장이 됨
+});
+
+app.post('/login', (req, res) => {
+    // 1. 요청된 이메일이 DB에 있는지 확인함.
+    // 2. 요청된 이메일이 데이터 베이스에 있다면 비밀번호가 맞는지 확인
+    // 3. 비밀번호 일치시 토큰 생성
+    // 4. 토큰 생성 후 어딘가에 저장(쿠키, 로컬 등)
+               
+    //몽고db의 findOne메소드 사용
+    User.findOne({ email: req.body.email }, (err, user) => {
+        //DB에 없을 때
+        if(!user){
+            return res.json({
+                loginSuccess: false,
+                message: "제공된 이메일에 해당하는 유저가 없습니다."
+            });
+        };
+        //DB에 있을 떄, 비밀번호 맞는지 확인
+        user.comparePassword(req.body.password, (err, isMatch) => {
+            if(!isMatch)
+                return res.json({ loginSuccess: false, message: "비밀번호가 틀렸습니다."})
+            //비밀번호 일치시 토큰 생성 : jwt라이브러리이용
+            user.generateToken((err, user) => {
+                if(err) return res.status(400).send(err); //400 = 에러
+                //토큰 생성 후 어딘가에 저장(쿠키, 로컬 등) 여기선 쿠키에 저장
+                return res.cookie("x_auth", user.token).status(200).json({
+                    loginSuccess : true, 
+                    userId : user._id
+                });
+            });
+        });
+
+
+    });
+
 });
 
 app.listen(port, () => {
@@ -139,3 +175,19 @@ app.listen(port, () => {
 // 
 // 요약: DB에 PW를 평문으로 저장하면 2019년 페북처럼 ㅈ되니까 salt 이용한 hash로 암호화 하여 저장함.
 //--------------------Bcrypt로 비밀번호 암호화 종료--------------------//
+
+//--------------------로그인 시작--------------------//
+// #11 #12
+// 1. app.post('/login', ) Route를 생성
+//     1. 요청된 이메일이 DB에 있는지 확인함 : 몽고DB의 findOne메소드 이용
+//     2. 요청된 이메일이 데이터 베이스에 있다면 비밀번호가 맞는지 확인 : User에 comparePassword메소드 생성하여 확인
+//     3. 비밀번호 일치시 토큰 생성 : jwt 라이브러리이용 ($ npm install jsonwebtoken --save)
+//        var jwt = require('jsonwebtoken');    웹토큰을 임포트
+//        var token = jwt.sign({ foo: 'bar'}, 'shhhh');  sign메소드로 합치기
+//     4. 토큰 생성 후 어딘가에 저장(쿠키, 로컬 등) 여기선 쿠키에 저장
+//        $ npm install cookie-parser --save
+//        const cookieParser = require('cookie-parser');
+//        app.use(cookieParser());
+//샘플에서는 쿠키파서가 아니라 다른거 사용한듯??
+               
+//--------------------로그인 종료--------------------//

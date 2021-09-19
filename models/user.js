@@ -1,6 +1,7 @@
 const mongoose = require('mongoose');
 const bcrypt = require('bcrypt');
 const saltRounds = 10; //salt가 몇글자인지
+const jwt = require('jsonwebtoken');
 
 const UserSchema = mongoose.Schema({
     name: {
@@ -55,6 +56,31 @@ UserSchema.pre('save',function( next ){
         next();
     };
 });
+
+//UserSchema에 PW 비교용 메소드(함수)를 생성
+UserSchema.methods.comparePassword = function(plainPassword, cb) {
+    //plainPassword 123456 을 동일방식으로 암호화시킨 후 비교해야함
+    //왜냐하면 hash 방식이라 암호화된 비밀번호를 복호화 할 수는 없기 떄문
+    bcrypt.compare(plainPassword, this.password, function(err, isMatch){
+        if(err) return cb(err); //cb는 callback함수 : 궁금하면 구글링 ㄱ
+        cb(null, isMatch);
+    });
+};
+
+//UserSchema에 토큰생성용 메소드(함수)를 생성
+UserSchema.methods.generateToken = function(cb) {
+    var user = this;
+    
+    //jsonwebtoken이용해서 토큰 생성하기
+    var token = jwt.sign(user._id.toHexString(), 'secretToken'); //여기서 id는 DB에 저장된 ID
+    //toHexString() 쓰는 이유 : toHexString메소드는 몽고디비의 메소드로, 몽고디비의 id가 String이 아니라 16진수이기때문에 String으로 변환시켜주기 위함
+
+    user.token = token
+    user.save(function(err, user) {
+        if(err) return cb(err);
+        cb(null, user);
+    });
+};
 
 // 설정한 스키마(제약조건)을 모델로 감싸줌
 // ('모델이름', 위에서 선언한 스키마)
