@@ -1,6 +1,7 @@
 const express = require('express'); //express 모듈을 가져옴
-const app = express(); //가져온 express 모듈을 이용해서 새로운 express 앱을 만들고
+const app = express(); //가져온 express 모듈을 이용해서 새로운 express 객체를 만들고
 const port = 5000;
+const config = require('./config/key');
 
 //const bodyParser = require('body-parser'); //body-parser 가져옴
 const { User } = require('./models/User'); //User.js로부터 가져옴
@@ -19,7 +20,7 @@ app.use(express.json()); //json 타입 데이터를 가져올 수 있게
 // 3. mongoose 다운($ npm install mongoose --save)
 // 4. 연결(아래 코드)
 const mongoose = require('mongoose');
-mongoose.connect('mongodb+srv://sihyen:1@boilerplate.u9dw3.mongodb.net/myFirstDatabase?retryWrites=true&w=majority'/*,{
+mongoose.connect(config.mongoURI/*,{
     //mongoose 버전이 6.0 이상이면 이하 항목이 default로 설정되어있기 때문에 에러발생
     //따라서 이 부분 지우고 실행하면 해결!
     useNewUrlParser: true, useUnifiedTopology: true, useCreateIndex: true, useFindAndModify: false
