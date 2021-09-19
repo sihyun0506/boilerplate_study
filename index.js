@@ -20,6 +20,7 @@ app.use(express.json()); //json 타입 데이터를 가져올 수 있게
 // 3. mongoose 다운($ npm install mongoose --save)
 // 4. 연결(아래 코드)
 const mongoose = require('mongoose');
+// #9 db의 id & pw깃헙에 올리지 않기
 mongoose.connect(config.mongoURI/*,{
     //mongoose 버전이 6.0 이상이면 이하 항목이 default로 설정되어있기 때문에 에러발생
     //따라서 이 부분 지우고 실행하면 해결!
@@ -123,3 +124,18 @@ app.listen(port, () => {
 // 3. nodemon 으로 실행
 // $ npm run 원하는명령어
 //--------------------nodemon 종료--------------------//
+
+//--------------------Bcrypt로 비밀번호 암호화 시작--------------------//
+// #10
+// 1. Register Route로 가기 (app.post('/register', (req, res) => { 이부분)
+// 2. save 전에 암호화를 시켜야함
+// 3. User.js 안에서 userSchema.pre('save', function(){}) <= 몽구스에서 가져온 메소드
+// pre('save',function(){}) : user정보를 저장하기 전에! function을 실행
+// 4. bcrypt를 가져와서 function안에서 bcrypt를 실행
+// 5. salt를 이용해서 비밀번호를 암호화(saltRounds = 10이면 10자리 salt를 이용해 비밀번호를 암호화)
+// 해시를 이용한 비밀번호 암호화 https://st-lab.tistory.com/100 참고
+// 암호화 이유 요약: 1234를 입력해도 a34h33m0jw 같은 값으로 DB에 저장되기 때문에 원래 비밀번호를 유추하기 힘듬
+// but a34h33m0jw 이런 값은 이미 1234라는걸 역으로 유추 가능하므로 salt를 사용
+// 
+// 요약: DB에 PW를 평문으로 저장하면 2019년 페북처럼 ㅈ되니까 salt 이용한 hash로 암호화 하여 저장함.
+//--------------------Bcrypt로 비밀번호 암호화 종료--------------------//
