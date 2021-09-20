@@ -5,6 +5,7 @@ const config = require('./config/key');
 const cookieParser = require('cookie-parser');
 //const bodyParser = require('body-parser'); //body-parser 가져옴
 const { User } = require('./models/User'); //User.js로부터 가져옴
+const { auth } = require('./middleware/auth');
 
 app.use(cookieParser());
 //express 4.16버전 이상에서는 내부에 bodyParser가 포함되므로 
@@ -97,7 +98,7 @@ app.post('/register', (req, res) => {
 
     user.save((err, userInfo) => {
         if (err) 
-            return res.json({success: false, err});
+            return res.json({success : false, err});
         return res.status(200).json({   //status(200)은 성공했다는 거
             success: true
         });
@@ -113,32 +114,56 @@ app.post('/login', (req, res) => {
     // 4. 토큰 생성 후 어딘가에 저장(쿠키, 로컬 등)
                
     //몽고db의 findOne메소드 사용
-    User.findOne({ email: req.body.email }, (err, user) => {
+    User.findOne({ email : req.body.email }, (err, user) => {
         //DB에 없을 때
         if(!user){
             return res.json({
-                loginSuccess: false,
-                message: "제공된 이메일에 해당하는 유저가 없습니다."
+                loginSuccess : false,
+                message : "제공된 이메일에 해당하는 유저가 없습니다."
             });
         };
         //DB에 있을 떄, 비밀번호 맞는지 확인
         user.comparePassword(req.body.password, (err, isMatch) => {
+            //비밀번호 불일치시
             if(!isMatch)
-                return res.json({ loginSuccess: false, message: "비밀번호가 틀렸습니다."})
-            //비밀번호 일치시 토큰 생성 : jwt라이브러리이용
+                return res.json({ loginSuccess : false, message: "비밀번호가 틀렸습니다."})
+            //비밀번호 일치시, 토큰 생성 : jwt라이브러리이용
             user.generateToken((err, user) => {
                 if(err) return res.status(400).send(err); //400 = 에러
                 //토큰 생성 후 어딘가에 저장(쿠키, 로컬 등) 여기선 쿠키에 저장
                 return res.cookie("x_auth", user.token).status(200).json({
                     loginSuccess : true, 
                     userId : user._id
+                    //,token : user.token 토큰확인하려고 그냥 해봄^^
                 });
             });
         });
-
-
     });
+});
 
+app.get('/auth', auth, (req, res) => {
+    //여기까지 middleware(auth.js)를 통과해왔으면 인증 성공했다는 뜻
+    //성공했다고 알리고, user정보를 제공
+    res.status(200).json({
+        _id : req.user._id,
+        //role이 0이면 일반, 0이 아니면 관리자
+        isAdmin : req.user.role === 0 ? false : true,
+        isAuth : true,
+        email : req.user.email,
+        name : req.user.name,
+        lastname : req.user.lastname,
+        role : req.user.role,
+        image : req.user.image
+    });
+});
+
+//로그인되어있는 상태이므로 auth 필요
+app.get('/logout', auth, (req, res) => {
+    //middleware에서 id로 검색해서 토큰을 지워줌
+    User.findOneAndUpdate({_id : req.user._id}, {token : ""}, (err, user) => {
+        if(err) return res.json({success : false, err});
+        return res.status(200).send({success : true});
+    });
 });
 
 app.listen(port, () => {
@@ -178,7 +203,7 @@ app.listen(port, () => {
 
 //--------------------로그인 시작--------------------//
 // #11 #12
-// 1. app.post('/login', ) Route를 생성
+// 1. app.post('/login', (req, res)=>{}) Route를 생성
 //     1. 요청된 이메일이 DB에 있는지 확인함 : 몽고DB의 findOne메소드 이용
 //     2. 요청된 이메일이 데이터 베이스에 있다면 비밀번호가 맞는지 확인 : User에 comparePassword메소드 생성하여 확인
 //     3. 비밀번호 일치시 토큰 생성 : jwt 라이브러리이용 ($ npm install jsonwebtoken --save)
@@ -188,6 +213,30 @@ app.listen(port, () => {
 //        $ npm install cookie-parser --save
 //        const cookieParser = require('cookie-parser');
 //        app.use(cookieParser());
-//샘플에서는 쿠키파서가 아니라 다른거 사용한듯??
-               
+//
+//샘플에서는 쿠키파서가 아니라 다른 라이브러리 사용한듯??             
 //--------------------로그인 종료--------------------//
+
+//--------------------권한 체크(auth:인증) 종료--------------------//
+// #13
+// jwt를 이용한 Auth : https://sanghaklee.tistory.com/47 참고
+// 
+// 1. app.get('/auth', auth, (req, res) => {} ) Route를 생성
+//--------------------권한 체크(auth:인증) 종료--------------------//
+
+//--------------------로그아웃 시작--------------------//
+// #14
+// 1. app.get('/logout', auth, (req,res)=>{}) Route를 생성
+// 2. 로그아웃하려는 유저를 DB에서 찾아서
+// 3. 토큰을 지워줌
+//--------------------로그아웃 종료--------------------//
+
+
+//*** [var 과 let const의 차이] ***
+//var은 function-scoped
+//let과 const는 block_scoped
+//var이 제일 아무렇게나 써도 됨
+//let과 const는 변수 재선언이 불가능함 <= var의 문제점이 해결됨
+//let과 const의 차이는 let은 재할당 가능, const는 재할당 불가
+//요약: var: 병신, let: 우리가 보통 하는 변수선언과 동일, const: 우리가 보통 하는 상수선언과 동일
+//https://gist.github.com/LeoHeo/7c2a2a6dbcf80becaaa1e61e90091e5d
