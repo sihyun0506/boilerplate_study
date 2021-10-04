@@ -4,8 +4,8 @@ const port = 5000;
 const config = require('./config/key');
 const cookieParser = require('cookie-parser');
 //const bodyParser = require('body-parser'); //body-parser 가져옴
-const { User } = require('../models/User'); //User.js로부터 가져옴
-const { auth } = require('../middleware/auth');
+const { User } = require('./models/User'); //User.js로부터 가져옴
+const { auth } = require('./middleware/auth');
 
 app.use(cookieParser());
 //express 4.16버전 이상에서는 내부에 bodyParser가 포함되므로 
@@ -85,6 +85,10 @@ mongoose.connect(config.mongoURI/*,{
 
 // get 방식 (홈 화면 접속시 route)
 app.get('/', (req, res) => res.send('Hello world! 이건 노드몬이야 그리고 이것도 노드몬이야')); //루트 디렉토리에 오면 helloworld 출력
+
+app.get('/api/hello', (req,res)=>{
+    res.send("hello axios");
+});
 
 // post 방식 (회원가입을 위한 route)
 app.post('/register', (req, res) => {
